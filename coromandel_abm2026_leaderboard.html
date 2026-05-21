@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>COROMANDEL ABM 2026 — Quiz Leaderboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --gold: #FFD700;
+    --gold-light: #FFF0A0;
+    --gold-dark: #B8860B;
+    --silver: #C0C0C0;
+    --bronze: #CD7F32;
+    --bg-dark: #0a0c14;
+    --bg-card: #12172a;
+    --bg-card2: #1a2038;
+    --accent: #00e5ff;
+    --accent2: #7c4dff;
+    --accent3: #ff6d00;
+    --text-primary: #f0f4ff;
+    --text-secondary: #8899bb;
+    --border: rgba(0,229,255,0.15);
+    --border-bright: rgba(0,229,255,0.45);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── ANIMATED BACKGROUND ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 20% 10%, rgba(124,77,255,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 35% at 80% 80%, rgba(0,229,255,0.10) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 30% at 50% 50%, rgba(255,109,0,0.06) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page-wrap { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+  /* ── HEADER ── */
+  .header {
+    text-align: center;
+    padding: 3rem 1rem 2.5rem;
+    position: relative;
+  }
+
+  .brand-pill {
+    display: inline-block;
+    background: rgba(0,229,255,0.1);
+    border: 1px solid var(--border-bright);
+    border-radius: 100px;
+    padding: 0.35rem 1.2rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.2rem;
+  }
+
+  .header h1 {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: clamp(2.2rem, 6vw, 4.2rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: 0.02em;
+    color: #fff;
+    text-shadow: 0 0 40px rgba(0,229,255,0.3);
+    margin-bottom: 0.5rem;
+  }
+
+  .header h1 span {
+    background: linear-gradient(90deg, var(--gold) 0%, #ff9800 50%, var(--gold) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 3s linear infinite;
+    background-size: 200%;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% center; }
+    100% { background-position: -200% center; }
+  }
+
+  .header-sub {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    margin-top: 0.6rem;
+  }
+
+  .header-divider {
+    width: 80px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    margin: 1.5rem auto 0;
+  }
+
+  /* ── STATS ROW ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+    margin: 2rem 0 2.5rem;
+  }
+
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.1rem 1rem;
+    text-align: center;
+    transition: border-color 0.2s;
+  }
+
+  .stat-card:hover { border-color: var(--border-bright); }
+
+  .stat-value {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-top: 0.35rem;
+  }
+
+  /* ── PODIUM ── */
+  .podium-section {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 1rem;
+    margin: 0 0 3rem;
+  }
+
+  .podium-card {
+    background: var(--bg-card);
+    border-radius: 14px;
+    padding: 1.2rem 1rem 0;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    min-width: 140px;
+    transition: transform 0.2s;
+  }
+
+  .podium-card:hover { transform: translateY(-4px); }
+
+  .podium-card.rank-1 {
+    border: 2px solid var(--gold);
+    box-shadow: 0 0 24px rgba(255,215,0,0.25);
+    order: 2;
+  }
+
+  .podium-card.rank-2 {
+    border: 1.5px solid var(--silver);
+    box-shadow: 0 0 14px rgba(192,192,192,0.15);
+    order: 1;
+  }
+
+  .podium-card.rank-3 {
+    border: 1.5px solid var(--bronze);
+    box-shadow: 0 0 14px rgba(205,127,50,0.15);
+    order: 3;
+  }
+
+  .podium-medal {
+    font-size: 2.2rem;
+    margin-bottom: 0.5rem;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+  }
+
+  .podium-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 0.2rem;
+    line-height: 1.2;
+  }
+
+  .podium-unit {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+  }
+
+  .podium-score {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 0;
+  }
+
+  .podium-card.rank-1 .podium-score { color: var(--gold); }
+  .podium-card.rank-2 .podium-score { color: var(--silver); }
+  .podium-card.rank-3 .podium-score { color: var(--bronze); }
+
+  .podium-base {
+    margin-top: 1rem;
+    width: calc(100% + 2px);
+    margin-left: -1px;
+    border-radius: 0 0 13px 13px;
+    text-align: center;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    padding: 0.5rem;
+  }
+
+  .rank-1 .podium-base { background: linear-gradient(135deg, #B8860B, #FFD700, #B8860B); color: #3a2800; }
+  .rank-2 .podium-base { background: linear-gradient(135deg, #888, #C0C0C0, #888); color: #222; }
+  .rank-3 .podium-base { background: linear-gradient(135deg, #7a4010, #CD7F32, #7a4010); color: #2a1500; }
+
+  /* ── CONTROLS ── */
+  .controls {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    align-items: center;
+  }
+
+  .search-wrap {
+    flex: 1;
+    min-width: 180px;
+    position: relative;
+  }
+
+  .search-wrap svg {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    pointer-events: none;
+    width: 16px; height: 16px;
+  }
+
+  .controls input[type=text] {
+    width: 100%;
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.55rem 0.75rem 0.55rem 2.2rem;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .controls input[type=text]:focus { border-color: var(--border-bright); }
+  .controls input[type=text]::placeholder { color: var(--text-secondary); }
+
+  .controls select {
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.55rem 1.8rem 0.55rem 0.75rem;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    outline: none;
+    appearance: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    font-family: 'Inter', sans-serif;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238899bb' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+
+  .controls select:focus { border-color: var(--border-bright); }
+
+  .controls label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* ── DOWNLOAD BUTTONS ── */
+  .dl-row {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    border: none;
+    transition: all 0.18s;
+    font-family: 'Inter', sans-serif;
+    text-transform: uppercase;
+  }
+
+  .btn-accent {
+    background: rgba(0,229,255,0.12);
+    border: 1px solid rgba(0,229,255,0.4);
+    color: var(--accent);
+  }
+
+  .btn-accent:hover {
+    background: rgba(0,229,255,0.22);
+    transform: translateY(-1px);
+  }
+
+  .btn-purple {
+    background: rgba(124,77,255,0.12);
+    border: 1px solid rgba(124,77,255,0.4);
+    color: #b39dff;
+  }
+
+  .btn-purple:hover {
+    background: rgba(124,77,255,0.22);
+    transform: translateY(-1px);
+  }
+
+  .btn svg { width: 14px; height: 14px; }
+
+  /* ── TABLE ── */
+  .table-wrap {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .table-scroll { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+
+  thead tr {
+    background: var(--bg-card2);
+    border-bottom: 1px solid var(--border-bright);
+  }
+
+  thead th {
+    padding: 0.9rem 1rem;
+    text-align: left;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    transition: color 0.15s;
+  }
+
+  thead th:hover { color: var(--accent); }
+
+  thead th.sorted-asc::after { content: ' ▲'; font-size: 0.6rem; color: var(--accent); }
+  thead th.sorted-desc::after { content: ' ▼'; font-size: 0.6rem; color: var(--accent); }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(0,229,255,0.05);
+    transition: background 0.15s;
+    animation: rowIn 0.3s ease both;
+  }
+
+  @keyframes rowIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  tbody tr:hover { background: rgba(0,229,255,0.04); }
+
+  tbody tr:last-child { border-bottom: none; }
+
+  tbody td {
+    padding: 0.8rem 1rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+  }
+
+  /* Rank column */
+  .rank-col {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    text-align: center;
+    width: 52px;
+  }
+
+  .rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    font-size: 0.85rem;
+  }
+
+  .rank-1-badge { background: rgba(255,215,0,0.15); color: var(--gold); border: 1px solid rgba(255,215,0,0.4); }
+  .rank-2-badge { background: rgba(192,192,192,0.12); color: var(--silver); border: 1px solid rgba(192,192,192,0.3); }
+  .rank-3-badge { background: rgba(205,127,50,0.12); color: var(--bronze); border: 1px solid rgba(205,127,50,0.3); }
+  .rank-other { background: rgba(255,255,255,0.04); color: var(--text-secondary); border: 1px solid transparent; }
+
+  .name-cell { font-weight: 500; min-width: 160px; }
+  .id-cell { color: var(--text-secondary); font-size: 0.8rem; min-width: 90px; }
+
+  .bu-pill {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 100px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .score-cell {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .round-cell {
+    font-size: 0.85rem;
+    text-align: center;
+    color: var(--text-secondary);
+  }
+
+  .round-cell.has-score { color: var(--text-primary); }
+
+  .dash { color: rgba(255,255,255,0.15); }
+
+  /* Score bar */
+  .score-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 120px;
+  }
+
+  .score-bar-bg {
+    flex: 1;
+    height: 6px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    transition: width 0.4s ease;
+  }
+
+  .score-num {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    min-width: 24px;
+    text-align: right;
+  }
+
+  /* Rounds badge */
+  .rounds-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: rgba(124,77,255,0.15);
+    color: #b39dff;
+    border: 1px solid rgba(124,77,255,0.3);
+  }
+
+  /* BU colors */
+  .bu-fert { background: rgba(0,229,255,0.1); color: #00e5ff; }
+  .bu-cpc { background: rgba(124,77,255,0.1); color: #b39dff; }
+  .bu-snd { background: rgba(255,109,0,0.12); color: #ff9a4d; }
+  .bu-retail { background: rgba(76,175,80,0.12); color: #81c784; }
+  .bu-corp { background: rgba(233,30,99,0.12); color: #f48fb1; }
+  .bu-mgmt { background: rgba(255,193,7,0.12); color: #ffd54f; }
+
+  /* ── FOOTER COUNT ── */
+  .table-footer {
+    padding: 0.75rem 1.25rem;
+    background: var(--bg-card2);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+  }
+
+  .footer-badge {
+    background: rgba(0,229,255,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(0,229,255,0.25);
+    padding: 0.2rem 0.65rem;
+    border-radius: 100px;
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+
+  /* ── TROPHY ANIMATION ── */
+  .trophy-wrap {
+    text-align: center;
+    font-size: 3.5rem;
+    margin-bottom: 0.5rem;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  /* ── PAGE TITLE STARS ── */
+  .stars {
+    display: inline-flex;
+    gap: 0.4rem;
+    font-size: 1.1rem;
+    margin-bottom: 0.6rem;
+    opacity: 0.7;
+  }
+
+  /* ── MOBILE RESPONSIVE ── */
+  @media (max-width: 640px) {
+    .podium-section { gap: 0.5rem; }
+    .podium-card { min-width: 100px; padding: 0.8rem 0.5rem 0; }
+    .podium-name { font-size: 0.85rem; }
+    .podium-medal { font-size: 1.6rem; }
+    .controls { flex-direction: column; }
+    .dl-row { flex-direction: column; }
+    .btn { width: 100%; justify-content: center; }
+    .id-cell { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="trophy-wrap">🏆</div>
+    <div class="stars">⭐ ⭐ ⭐ ⭐ ⭐</div><br/>
+    <div class="brand-pill">Coromandel International Ltd.</div>
+    <h1>ABM 2026 <span>Quiz Championship</span></h1>
+    <p class="header-sub">Employee Knowledge Challenge · Final Leaderboard</p>
+    <div class="header-divider"></div>
+  </div>
+
+  <!-- STATS ROW -->
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card">
+      <div class="stat-value" id="statTotal">0</div>
+      <div class="stat-label">Total Participants</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statR1">0</div>
+      <div class="stat-label">Round 1 Players</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statR2">0</div>
+      <div class="stat-label">Round 2 Players</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statFinal">0</div>
+      <div class="stat-label">Final Round Players</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statTopScore" style="color:#FFD700;">0</div>
+      <div class="stat-label">Highest Score</div>
+    </div>
+  </div>
+
+  <!-- PODIUM -->
+  <div class="podium-section" id="podiumSection"></div>
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <div class="search-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="searchInput" placeholder="Search by name or employee ID…"/>
+    </div>
+    <div class="filter-group">
+      <label for="buFilter">Business Unit</label>
+      <select id="buFilter">
+        <option value="">All Units</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="divFilter">Division</label>
+      <select id="divFilter">
+        <option value="">All Divisions</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="roundFilter">Participated In</label>
+      <select id="roundFilter">
+        <option value="">All Rounds</option>
+        <option value="round1">Round 1</option>
+        <option value="round2">Round 2</option>
+        <option value="final">Final Round</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- DOWNLOAD BUTTONS -->
+  <div class="dl-row">
+    <button class="btn btn-accent" onclick="downloadExcel(true)">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download Filtered View (Excel)
+    </button>
+    <button class="btn btn-purple" onclick="downloadExcel(false)">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download Full Leaderboard (Excel)
+    </button>
+    <button class="btn btn-accent" onclick="downloadCSV(true)">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Download Filtered View (CSV)
+    </button>
+    <button class="btn btn-purple" onclick="downloadCSV(false)">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Download Full Leaderboard (CSV)
+    </button>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrap">
+    <div class="table-scroll">
+      <table id="leaderTable">
+        <thead>
+          <tr>
+            <th onclick="sortBy('rank')" id="th-rank">Rank</th>
+            <th onclick="sortBy('id')" id="th-id">Emp. ID</th>
+            <th onclick="sortBy('name')" id="th-name">Name</th>
+            <th onclick="sortBy('bu')" id="th-bu">Business Unit</th>
+            <th onclick="sortBy('div')" id="th-div">Division</th>
+            <th onclick="sortBy('r1')" id="th-r1">Round 1</th>
+            <th onclick="sortBy('r2')" id="th-r2">Round 2</th>
+            <th onclick="sortBy('rf')" id="th-rf">Final</th>
+            <th onclick="sortBy('total')" id="th-total" class="sorted-desc">Total Score</th>
+            <th onclick="sortBy('rounds')" id="th-rounds">Rounds</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <span id="rowCount">Showing 0 of 0 participants</span>
+      <span class="footer-badge">COROMANDEL ABM 2026</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const RAW_DATA = [
+  {id:'10018215',name:'Saurabh Shukla',bu:'FERT-FIELD',div:'NORTH',r1:null,r2:4,rf:9,total:13,rounds:2},
+  {id:'10014288',name:'Bikkina Naveen',bu:'FERT-FIELD',div:'SOUTH-1',r1:5,r2:3,rf:null,total:8,rounds:2},
+  {id:'10004459',name:'Girish Choudhary',bu:'FERT-FIELD',div:'CENTRAL',r1:3,r2:3,rf:null,total:6,rounds:2},
+  {id:'10015673',name:'Sachin H E',bu:'FERT-FIELD',div:'SOUTH-2',r1:2,r2:3,rf:1,total:6,rounds:3},
+  {id:'10018624',name:'Manish Pal',bu:'CPC-B2B',div:'North',r1:4,r2:2,rf:null,total:6,rounds:2},
+  {id:'E5',name:'Debashish (E5)',bu:'FERT-FIELD',div:'WEST',r1:5,r2:null,rf:null,total:5,rounds:1},
+  {id:'10001543',name:'M.Jayakar',bu:'RETAIL',div:'RETAIL',r1:3,r2:2,rf:null,total:5,rounds:2},
+  {id:'10014133',name:'Vikram Gunwantrao Ekonde',bu:'FERT-FIELD',div:'WEST',r1:3,r2:2,rf:null,total:5,rounds:2},
+  {id:'10006407',name:'Sunil Kumar Yadav',bu:'FERT-FIELD',div:'NORTH',r1:0,r2:1,rf:4,total:5,rounds:3},
+  {id:'E1',name:'Debashish (E1)',bu:'FERT-FIELD',div:'WEST',r1:4,r2:1,rf:null,total:5,rounds:2},
+  {id:'10019143',name:'T.Vijay Kumar',bu:'CPC-CORP',div:'COMMON',r1:3,r2:2,rf:null,total:5,rounds:2},
+  {id:'10014564',name:'Arpit Noel',bu:'FERT-S&M/SCM',div:'S&M/SCM',r1:3,r2:1,rf:null,total:4,rounds:2},
+  {id:'10015430',name:'Mayank Raj',bu:'FERT-FIELD',div:'EAST',r1:4,r2:null,rf:null,total:4,rounds:1},
+  {id:'10015147',name:'Nikhilkumar Kustigar',bu:'FERT-FIELD',div:'SOUTH-2',r1:3,r2:1,rf:null,total:4,rounds:2},
+  {id:'10017026',name:'Biman Kundu',bu:'CPC-FIELD',div:'East',r1:4,r2:null,rf:null,total:4,rounds:1},
+  {id:'10018489',name:'Sampreet Mitra',bu:'FERT-FIELD',div:'EAST',r1:3,r2:1,rf:null,total:4,rounds:2},
+  {id:'10015619',name:'Rama Lal Naik Bukke',bu:'CPC-CORP',div:'COMMON',r1:4,r2:null,rf:null,total:4,rounds:1},
+  {id:'10008362',name:'Narendra Prasad G',bu:'FERT-FIELD',div:'SOUTH-2',r1:1,r2:3,rf:null,total:4,rounds:2},
+  {id:'10011485',name:'Himanshu Tiwari',bu:'SND-CORP',div:'COMMON',r1:3,r2:0,rf:null,total:3,rounds:2},
+  {id:'10012649',name:'Deepak Kumar',bu:'FERT-FIELD',div:'CENTRAL',r1:3,r2:null,rf:null,total:3,rounds:1},
+  {id:'10013223',name:'Vujjineni V S Ragesh',bu:'FERT-FIELD',div:'SOUTH-1',r1:2,r2:1,rf:null,total:3,rounds:2},
+  {id:'10009101',name:'Santosh Kumar',bu:'FERT-FIELD',div:'NORTH',r1:2,r2:1,rf:null,total:3,rounds:2},
+  {id:'10008773',name:'Anandajothi R',bu:'FERT-FIELD',div:'SOUTH-2',r1:2,r2:1,rf:null,total:3,rounds:2},
+  {id:'10006237',name:'K Vinoth Krishna Raj',bu:'FERT-FIELD',div:'SOUTH-2',r1:3,r2:null,rf:null,total:3,rounds:1},
+  {id:'10003357',name:'G.Sankar',bu:'CORP-FIN',div:'COMMON',r1:3,r2:null,rf:null,total:3,rounds:1},
+  {id:'10014337',name:'Shailendra Kumar Pandey',bu:'SND-FIELD',div:'Central',r1:null,r2:3,rf:null,total:3,rounds:1},
+  {id:'10015016',name:'Manish Kumar Singh',bu:'FERT-FIELD',div:'EAST',r1:3,r2:null,rf:null,total:3,rounds:1},
+  {id:'10015601',name:'Inti Satish',bu:'FERT-FIELD',div:'SOUTH-1',r1:3,r2:null,rf:null,total:3,rounds:1},
+  {id:'10016489',name:'Nalli Sachin',bu:'FERT-FIELD',div:'SOUTH-1',r1:3,r2:null,rf:null,total:3,rounds:1},
+  {id:'10011352',name:'Rameshkumar A',bu:'FERT-FIELD',div:'SOUTH-2',r1:3,r2:null,rf:null,total:3,rounds:1},
+  {id:'10011081',name:'Jai Ram Sharma',bu:'FERT-FIELD',div:'EAST',r1:3,r2:null,rf:null,total:3,rounds:1},
+  {id:'10005185',name:'Akbarsaheb Nadaf',bu:'FERT-FIELD',div:'SOUTH-2',r1:3,r2:null,rf:null,total:3,rounds:1},
+  {id:'10005460',name:'Namdeo B Bhujade',bu:'FERT-FIELD',div:'WEST',r1:3,r2:null,rf:null,total:3,rounds:1},
+  {id:'10013895',name:'Bishal Newar Pradhan',bu:'FERT-FIELD',div:'EAST',r1:3,r2:null,rf:null,total:3,rounds:1},
+  {id:'10018232',name:'Dr. Manoj Kumar',bu:'SND-FIELD',div:'Central',r1:3,r2:null,rf:null,total:3,rounds:1},
+  {id:'10017437',name:'Hanumant Samadhiya',bu:'SND-FIELD',div:'Central',r1:3,r2:null,rf:null,total:3,rounds:1},
+  {id:'10017309',name:'Vishal Dattatray Bhujbal',bu:'SND-CORP',div:'COMMON',r1:3,r2:null,rf:null,total:3,rounds:1},
+  {id:'10018604',name:'Ravikiran A R',bu:'FERT-FIELD',div:'SOUTH-2',r1:2,r2:1,rf:null,total:3,rounds:2},
+  {id:'10016924',name:'Sourav Kumar Swain',bu:'FERT-FIELD',div:'EAST',r1:null,r2:3,rf:null,total:3,rounds:1},
+  {id:'10015674',name:'Bhukya Venkanna',bu:'FERT-FIELD',div:'SOUTH-1',r1:2,r2:1,rf:null,total:3,rounds:2},
+  {id:'10011040',name:'K Ajay Kumar',bu:'SND-CORP',div:'COMMON',r1:2,r2:null,rf:null,total:2,rounds:1},
+  {id:'10014107',name:'Sanjay Mohapatra',bu:'FERT-FIELD',div:'EAST',r1:null,r2:2,rf:null,total:2,rounds:1},
+  {id:'10014084',name:'Kesireddy Vijayasagar',bu:'FERT-FIELD',div:'SOUTH-1',r1:2,r2:null,rf:null,total:2,rounds:1},
+  {id:'10012530',name:'Shiv Prakash Srivastava',bu:'FERT-FIELD',div:'NORTH',r1:2,r2:null,rf:null,total:2,rounds:1},
+  {id:'10014258',name:'Taduri Srinu',bu:'FERT-FIELD',div:'SOUTH-1',r1:2,r2:null,rf:null,total:2,rounds:1},
+  {id:'10011656',name:'Ritesh Heda',bu:'CPC-CORP',div:'COMMON',r1:null,r2:2,rf:null,total:2,rounds:1},
+  {id:'10011339',name:'Dr. Ganesh Tekale',bu:'SND-FIELD',div:'West',r1:2,r2:null,rf:null,total:2,rounds:1},
+  {id:'10011808',name:'Patel Chandresh Natvarlal',bu:'CPC-FIELD',div:'Central',r1:null,r2:2,rf:null,total:2,rounds:1},
+  {id:'10011763',name:'Neelabh Asati',bu:'FERT-FIELD',div:'Central',r1:2,r2:null,rf:null,total:2,rounds:1},
+  {id:'10011816',name:'Gobi R',bu:'CPC-FIELD',div:'South-2',r1:2,r2:null,rf:null,total:2,rounds:1},
+  {id:'10007158',name:'Kypa Venkata Ramana Reddy',bu:'FERT-FIELD',div:'SOUTH-2',r1:2,r2:null,rf:null,total:2,rounds:1},
+  {id:'10006006',name:'Gopu Shirisha',bu:'CPC-CORP',div:'COMMON',r1:null,r2:2,rf:null,total:2,rounds:1},
+  {id:'10003821',name:'M C Shamanth Kumar',bu:'CPC-CORP',div:'COMMON',r1:2,r2:null,rf:null,total:2,rounds:1},
+  {id:'10008019',name:'G S Shekhawat',bu:'FERT-FIELD',div:'CENTRAL',r1:2,r2:null,rf:null,total:2,rounds:1},
+  {id:'10010031',name:'Pallab Sircar',bu:'FERT-FIELD',div:'EAST',r1:null,r2:2,rf:null,total:2,rounds:1},
+  {id:'10012015',name:'Vikram Singh',bu:'FERT-FIELD',div:'NORTH',r1:null,r2:2,rf:null,total:2,rounds:1},
+  {id:'10012430',name:'BRAJESH DHAKED',bu:'FERT-FIELD',div:'CENTRAL',r1:2,r2:null,rf:null,total:2,rounds:1},
+  {id:'E2',name:'Debashish (E2)',bu:'FERT-FIELD',div:'WEST',r1:2,r2:null,rf:null,total:2,rounds:1},
+  {id:'10018645',name:'Sayantan Paul',bu:'FERT-FIELD',div:'EAST',r1:2,r2:null,rf:null,total:2,rounds:1},
+  {id:'10015995',name:'Rangaswamy E',bu:'FERT-FIELD',div:'SOUTH-2',r1:null,r2:2,rf:null,total:2,rounds:1},
+  {id:'10016254',name:'Gokulraj M',bu:'FERT-FIELD',div:'SOUTH-2',r1:2,r2:null,rf:null,total:2,rounds:1},
+  {id:'10014750',name:'Gobinda Karmakar',bu:'FERT-FIELD',div:'EAST',r1:2,r2:null,rf:null,total:2,rounds:1},
+  {id:'10016820',name:'RAHUL TIWARI',bu:'CPC-FIELD',div:'NORTH',r1:2,r2:null,rf:null,total:2,rounds:1},
+  {id:'10017993',name:'Priya Reji',bu:'CORP-HR',div:'COMMON',r1:2,r2:null,rf:null,total:2,rounds:1},
+  {id:'10017577',name:'Ranjeet Yadav',bu:'SND-FIELD',div:'NORTH',r1:null,r2:2,rf:null,total:2,rounds:1},
+  {id:'10017234',name:'Pradeep Kumar',bu:'FERT-FIELD',div:'NORTH',r1:0,r2:1,rf:null,total:1,rounds:2},
+  {id:'10017042',name:'Amiritha Varshini',bu:'FERT-S&M/SCM',div:'S&M/SCM',r1:null,r2:1,rf:null,total:1,rounds:1},
+  {id:'10017235',name:'Bonamsetty Nagarjuna',bu:'CPC-FIELD',div:'South-1',r1:1,r2:null,rf:null,total:1,rounds:1},
+  {id:'10018070',name:'Rohit Anand',bu:'SND-FIELD',div:'Central',r1:null,r2:1,rf:null,total:1,rounds:1},
+  {id:'10017269',name:'Jitendra Chowdhary',bu:'CPC-FIELD',div:'Central',r1:null,r2:1,rf:null,total:1,rounds:1},
+  {id:'10017427',name:'Chaudhary Jayantibhai Laxmanbhai',bu:'CPC-FIELD',div:'Central',r1:1,r2:null,rf:null,total:1,rounds:1},
+  {id:'10014194',name:'Lokendra Birle',bu:'FERT-FIELD',div:'CENTRAL',r1:0,r2:1,rf:null,total:1,rounds:2},
+  {id:'10013785',name:'Avijit Pal',bu:'CPC-FIELD',div:'East',r1:1,r2:null,rf:null,total:1,rounds:1},
+  {id:'10007430',name:'Gampa Srinivas',bu:'FERT-FIELD',div:'SOUTH-1',r1:1,r2:null,rf:null,total:1,rounds:1},
+  {id:'10006402',name:'Singamsetty Chandramohan',bu:'FERT-FIELD',div:'SOUTH-1',r1:1,r2:null,rf:null,total:1,rounds:1},
+  {id:'10006456',name:'Alok Kumar',bu:'FERT-FIELD',div:'EAST',r1:1,r2:null,rf:null,total:1,rounds:1},
+  {id:'10006410',name:'Syed Showkat Hussain',bu:'CPC-FIELD',div:'NORTH',r1:null,r2:1,rf:null,total:1,rounds:1},
+  {id:'10006403',name:'Konduru Anil Kumar',bu:'FERT-FIELD',div:'SOUTH-1',r1:1,r2:null,rf:null,total:1,rounds:1},
+  {id:'10002132',name:'R Udhayabaskar',bu:'FERT-FIELD',div:'SOUTH-2',r1:1,r2:null,rf:null,total:1,rounds:1},
+  {id:'10017287',name:'Minu Sudhir',bu:'FERT-S&M/SCM',div:'S&M/SCM',r1:null,r2:1,rf:null,total:1,rounds:1},
+  {id:'10016922',name:'Narsireddy Annapureddy',bu:'FERT-FIELD',div:'SOUTH-1',r1:1,r2:null,rf:null,total:1,rounds:1},
+  {id:'10015363',name:'Sanjay Sinha',bu:'SR MGMT',div:'COMMON',r1:1,r2:null,rf:null,total:1,rounds:1},
+  {id:'10012252',name:'Debendra Nath Chakraborty',bu:'FERT-FIELD',div:'EAST',r1:1,r2:null,rf:null,total:1,rounds:1},
+  {id:'10012709',name:'Kodari Rahulkumar',bu:'FERT-FIELD',div:'SOUTH-1',r1:null,r2:1,rf:null,total:1,rounds:1},
+  {id:'10011701',name:'Kuchara Jitendrakumar Ghanshyambhai',bu:'SND-FIELD',div:'Central',r1:1,r2:null,rf:null,total:1,rounds:1},
+  {id:'10009261',name:'Vivek Sharma',bu:'FERT-FIELD',div:'CENTRAL',r1:1,r2:null,rf:null,total:1,rounds:1},
+  {id:'10012076',name:'Devireddy Ashok Reddy',bu:'FERT-FIELD',div:'SOUTH-1',r1:1,r2:null,rf:null,total:1,rounds:1},
+  {id:'10014485',name:'S Priyatham Swamy',bu:'FERT-FIELD',div:'SOUTH-1',r1:null,r2:1,rf:null,total:1,rounds:1},
+  {id:'10014764',name:'Prasanna Pratap Reddy K',bu:'FERT-FIELD',div:'SOUTH-2',r1:1,r2:null,rf:null,total:1,rounds:1},
+  {id:'E3',name:'Debashish (E3)',bu:'FERT-FIELD',div:'WEST',r1:1,r2:null,rf:null,total:1,rounds:1},
+  {id:'10017339',name:'Trapasiya Akshaykumar Pravinbhai',bu:'SND-FIELD',div:'Central',r1:1,r2:null,rf:null,total:1,rounds:1},
+  {id:'10014948',name:'Karthik D',bu:'SND-CORP',div:'COMMON',r1:1,r2:null,rf:null,total:1,rounds:1},
+  {id:'10015263',name:'Abhisek Pal',bu:'CPC-FIELD',div:'East',r1:null,r2:1,rf:null,total:1,rounds:1},
+  {id:'10015381',name:'Priyanka Sahoo',bu:'CPC-CORP',div:'COMMON',r1:null,r2:1,rf:null,total:1,rounds:1},
+  {id:'10015341',name:'BASAWARAJ',bu:'CPC-FIELD',div:'South-2',r1:1,r2:null,rf:null,total:1,rounds:1},
+  {id:'10016671',name:'Sanjeev Kumar Singh',bu:'CPC-FIELD',div:'NORTH',r1:null,r2:1,rf:null,total:1,rounds:1},
+  {id:'10014392',name:'Narender Gupta',bu:'FERT-FIELD',div:'WEST',r1:1,r2:null,rf:null,total:1,rounds:1},
+  {id:'10014800',name:'Kommuri Pramodh',bu:'FERT-FIELD',div:'SOUTH-1',r1:1,r2:null,rf:null,total:1,rounds:1},
+  {id:'10003750',name:'Srimandri Koteswara Rao',bu:'FERT-FIELD',div:'SOUTH-1',r1:0,r2:null,rf:null,total:0,rounds:1},
+  {id:'10013703',name:'Sunil Kumar',bu:'SND-FIELD',div:'NORTH',r1:0,r2:null,rf:null,total:0,rounds:1},
+  {id:'10013715',name:'Nikesh Kumar Baidya',bu:'CPC-CORP',div:'COMMON',r1:null,r2:0,rf:null,total:0,rounds:1},
+  {id:'10010200',name:'Pravin Lal Sriwastaw',bu:'CPC-FIELD',div:'Central',r1:null,r2:0,rf:null,total:0,rounds:1},
+  {id:'10012163',name:'Sunil .',bu:'CPC-FIELD',div:'Central',r1:0,r2:null,rf:null,total:0,rounds:1},
+  {id:'10006773',name:'I Swapna Naidu',bu:'FERT-FIELD',div:'SOUTH-2',r1:0,r2:null,rf:null,total:0,rounds:1},
+  {id:'10006471',name:'Satanand Sharma',bu:'FERT-FIELD',div:'CENTRAL',r1:null,r2:0,rf:null,total:0,rounds:1},
+  {id:'10012591',name:'Baviskar Pankaj Govind',bu:'SND-FIELD',div:'West',r1:0,r2:null,rf:null,total:0,rounds:1},
+  {id:'10012711',name:'Anil Kumar Reddy Yerram',bu:'FERT-FIELD',div:'SOUTH-1',r1:0,r2:null,rf:null,total:0,rounds:1},
+  {id:'10016491',name:'Sanjoy Biswas',bu:'FERT-FIELD',div:'EAST',r1:0,r2:null,rf:null,total:0,rounds:1},
+  {id:'10016507',name:'Oza Bhavik',bu:'CPC-FIELD',div:'Central',r1:null,r2:0,rf:null,total:0,rounds:1},
+  {id:'10015614',name:'Nagula Sravan Kumar',bu:'FERT-FIELD',div:'SOUTH-1',r1:0,r2:null,rf:null,total:0,rounds:1},
+  {id:'10014941',name:'Aditya Narayan Patra',bu:'FERT-FIELD',div:'EAST',r1:0,r2:null,rf:null,total:0,rounds:1},
+  {id:'10014604',name:'Patel Mayurkumar Jayantilal',bu:'CPC-FIELD',div:'Central',r1:0,r2:null,rf:null,total:0,rounds:1},
+  {id:'10016159',name:'Aloka Y G',bu:'FERT-FIELD',div:'SOUTH-2',r1:null,r2:0,rf:null,total:0,rounds:1},
+  {id:'10016592',name:'Khedkar Santosh',bu:'CPC-FIELD',div:'West',r1:null,r2:0,rf:null,total:0,rounds:1},
+  {id:'10016935',name:'Santhosh Reddy V',bu:'FERT-FIELD',div:'SOUTH-1',r1:0,r2:null,rf:null,total:0,rounds:1},
+  {id:'10017175',name:'Laxman Malhari Nilakh',bu:'SND-FIELD',div:'West',r1:null,r2:0,rf:null,total:0,rounds:1},
+  {id:'10017258',name:'Rushikesh Dadasaheb Sagade',bu:'FERT-FIELD',div:'WEST',r1:0,r2:null,rf:null,total:0,rounds:1},
+  {id:'10017611',name:'Karnam Veeresha',bu:'FERT-FIELD',div:'SOUTH-2',r1:null,r2:0,rf:null,total:0,rounds:1},
+  {id:'10018227',name:'Ghanshyam .',bu:'SND-FIELD',div:'NORTH',r1:0,r2:null,rf:null,total:0,rounds:1},
+  {id:'10018258',name:'Kavya Krishna Surepalli',bu:'FERT-FIELD',div:'SOUTH-1',r1:0,r2:null,rf:null,total:0,rounds:1},
+  {id:'7000096',name:'B H M Shashidhara',bu:'FERT-FIELD',div:'SOUTH-2',r1:null,r2:0,rf:null,total:0,rounds:1},
+];
+
+const MAX_SCORE = Math.max(...RAW_DATA.map(d => d.total));
+
+let sortCol = 'total';
+let sortDir = 'desc';
+let filtered = [];
+
+function getBUClass(bu) {
+  if (!bu) return 'bu-fert';
+  const b = bu.toUpperCase();
+  if (b.startsWith('FERT')) return 'bu-fert';
+  if (b.startsWith('CPC')) return 'bu-cpc';
+  if (b.startsWith('SND')) return 'bu-snd';
+  if (b === 'RETAIL') return 'bu-retail';
+  if (b.startsWith('CORP') || b.startsWith('SR')) return 'bu-corp';
+  return 'bu-mgmt';
+}
+
+function getRankBadge(rank) {
+  if (rank === 1) return `<span class="rank-badge rank-1-badge">1</span>`;
+  if (rank === 2) return `<span class="rank-badge rank-2-badge">2</span>`;
+  if (rank === 3) return `<span class="rank-badge rank-3-badge">3</span>`;
+  return `<span class="rank-badge rank-other">${rank}</span>`;
+}
+
+function scoreBar(val) {
+  const pct = MAX_SCORE > 0 ? Math.round((val / MAX_SCORE) * 100) : 0;
+  const color = val >= 10 ? '#FFD700' : val >= 5 ? '#00e5ff' : val >= 3 ? '#7c4dff' : '#8899bb';
+  return `<div class="score-bar-wrap">
+    <div class="score-bar-bg"><div class="score-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+    <span class="score-num" style="color:${color}">${val}</span>
+  </div>`;
+}
+
+function roundCell(val) {
+  if (val === null || val === undefined) return `<span class="dash">—</span>`;
+  return `<span class="${val > 0 ? 'has-score' : ''}">${val}</span>`;
+}
+
+function initFilters() {
+  const bus = [...new Set(RAW_DATA.map(d => d.bu))].sort();
+  const buSel = document.getElementById('buFilter');
+  bus.forEach(b => { const o = document.createElement('option'); o.value = b; o.textContent = b; buSel.appendChild(o); });
+
+  const divs = [...new Set(RAW_DATA.map(d => d.div))].sort();
+  const divSel = document.getElementById('divFilter');
+  divs.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; divSel.appendChild(o); });
+}
+
+function getFiltered() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const bu = document.getElementById('buFilter').value;
+  const div = document.getElementById('divFilter').value;
+  const round = document.getElementById('roundFilter').value;
+
+  return RAW_DATA.filter(r => {
+    if (q && !r.name.toLowerCase().includes(q) && !r.id.toLowerCase().includes(q)) return false;
+    if (bu && r.bu !== bu) return false;
+    if (div && r.div.toUpperCase() !== div.toUpperCase()) return false;
+    if (round === 'round1' && r.r1 === null) return false;
+    if (round === 'round2' && r.r2 === null) return false;
+    if (round === 'final' && r.rf === null) return false;
+    return true;
+  });
+}
+
+function sortData(data) {
+  return [...data].sort((a, b) => {
+    let av, bv;
+    switch (sortCol) {
+      case 'rank': case 'total': av = a.total; bv = b.total; break;
+      case 'name': av = a.name; bv = b.name; break;
+      case 'id': av = a.id; bv = b.id; break;
+      case 'bu': av = a.bu; bv = b.bu; break;
+      case 'div': av = a.div; bv = b.div; break;
+      case 'r1': av = a.r1 ?? -1; bv = b.r1 ?? -1; break;
+      case 'r2': av = a.r2 ?? -1; bv = b.r2 ?? -1; break;
+      case 'rf': av = a.rf ?? -1; bv = b.rf ?? -1; break;
+      case 'rounds': av = a.rounds; bv = b.rounds; break;
+      default: av = a.total; bv = b.total;
+    }
+    if (av < bv) return sortDir === 'asc' ? -1 : 1;
+    if (av > bv) return sortDir === 'asc' ? 1 : -1;
+    return a.total > b.total ? -1 : 1;
+  });
+}
+
+function render() {
+  const data = sortData(getFiltered());
+  filtered = data;
+
+  // Build rank map from full sorted data for consistent rank display
+  const allSorted = sortData(RAW_DATA.filter(() => true).sort((a,b) => b.total - a.total));
+  const rankMap = {};
+  allSorted.forEach((r, i) => { rankMap[r.id] = i + 1; });
+
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = data.map((r, idx) => {
+    const globalRank = rankMap[r.id] || (idx + 1);
+    return `<tr style="animation-delay:${Math.min(idx * 0.02, 0.4)}s">
+      <td class="rank-col">${getRankBadge(globalRank)}</td>
+      <td class="id-cell">${r.id}</td>
+      <td class="name-cell">${r.name}</td>
+      <td><span class="bu-pill ${getBUClass(r.bu)}">${r.bu}</span></td>
+      <td style="color:var(--text-secondary);font-size:0.82rem">${r.div}</td>
+      <td class="round-cell">${roundCell(r.r1)}</td>
+      <td class="round-cell">${roundCell(r.r2)}</td>
+      <td class="round-cell">${roundCell(r.rf)}</td>
+      <td>${scoreBar(r.total)}</td>
+      <td style="text-align:center"><span class="rounds-badge">${r.rounds}</span></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('rowCount').textContent = `Showing ${data.length} of ${RAW_DATA.length} participants`;
+
+  updateSortHeaders();
+}
+
+function updateSortHeaders() {
+  const cols = ['rank','id','name','bu','div','r1','r2','rf','total','rounds'];
+  cols.forEach(c => {
+    const th = document.getElementById('th-' + c);
+    if (!th) return;
+    th.classList.remove('sorted-asc', 'sorted-desc');
+    if (c === sortCol) th.classList.add(sortDir === 'asc' ? 'sorted-asc' : 'sorted-desc');
+  });
+}
+
+function sortBy(col) {
+  if (sortCol === col) sortDir = sortDir === 'desc' ? 'asc' : 'desc';
+  else { sortCol = col; sortDir = col === 'name' || col === 'id' ? 'asc' : 'desc'; }
+  render();
+}
+
+function initStats() {
+  document.getElementById('statTotal').textContent = RAW_DATA.length;
+  document.getElementById('statR1').textContent = RAW_DATA.filter(d => d.r1 !== null).length;
+  document.getElementById('statR2').textContent = RAW_DATA.filter(d => d.r2 !== null).length;
+  document.getElementById('statFinal').textContent = RAW_DATA.filter(d => d.rf !== null).length;
+  document.getElementById('statTopScore').textContent = MAX_SCORE;
+}
+
+function initPodium() {
+  const top3 = [...RAW_DATA].sort((a,b) => b.total - a.total).slice(0, 3);
+  const medals = ['🥇','🥈','🥉'];
+  const ranks = ['rank-1','rank-2','rank-3'];
+  const pos = [1, 2, 3];
+  const section = document.getElementById('podiumSection');
+  pos.forEach((p, i) => {
+    const r = top3[i];
+    if (!r) return;
+    section.innerHTML += `
+      <div class="podium-card ${ranks[i]}">
+        <div class="podium-medal">${medals[i]}</div>
+        <div class="podium-name">${r.name}</div>
+        <div class="podium-unit">${r.bu} · ${r.div}</div>
+        <div class="podium-score">${r.total} pts</div>
+        <div class="podium-base">#${i + 1}</div>
+      </div>`;
+  });
+}
+
+// ── DOWNLOAD ──
+function toTableData(data) {
+  return data.map((r, idx) => ({
+    'Rank': idx + 1,
+    'Employee ID': r.id,
+    'Name': r.name,
+    'Business Unit': r.bu,
+    'Division': r.div,
+    'Round 1': r.r1 ?? '',
+    'Round 2': r.r2 ?? '',
+    'Final Round': r.rf ?? '',
+    'Total Score': r.total,
+    'Rounds Participated': r.rounds,
+  }));
+}
+
+function downloadExcel(useFiltered) {
+  const data = useFiltered ? sortData(getFiltered()) : [...RAW_DATA].sort((a,b) => b.total - a.total);
+  const rows = toTableData(data);
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Leaderboard');
+  const label = useFiltered ? 'filtered' : 'full';
+  XLSX.writeFile(wb, `coromandel_abm2026_leaderboard_${label}.xlsx`);
+}
+
+function downloadCSV(useFiltered) {
+  const data = useFiltered ? sortData(getFiltered()) : [...RAW_DATA].sort((a,b) => b.total - a.total);
+  const rows = toTableData(data);
+  const headers = Object.keys(rows[0]);
+  const csv = [headers.join(','), ...rows.map(r => headers.map(h => `"${(r[h] ?? '').toString().replace(/"/g,'""')}"`).join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `coromandel_abm2026_leaderboard_${useFiltered ? 'filtered' : 'full'}.csv`;
+  a.click();
+}
+
+// INIT
+initStats();
+initFilters();
+initPodium();
+render();
+
+document.getElementById('searchInput').addEventListener('input', render);
+document.getElementById('buFilter').addEventListener('change', render);
+document.getElementById('divFilter').addEventListener('change', render);
+document.getElementById('roundFilter').addEventListener('change', render);
+</script>
+</body>
+</html>
